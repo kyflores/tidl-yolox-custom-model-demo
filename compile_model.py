@@ -46,7 +46,7 @@ if __name__ == "__main__":
     calibration_images = [ os.path.join(calibration_images_path, name) for name in os.listdir(calibration_images_path) ]
 
     num_calibration_frames = len(calibration_images)
-    num_calibration_iterations = 50 # TODO: Probably more than necessary, but 50 is the default.
+    num_calibration_iterations = 10 # 10 seems like enough to get a reasonable model.
     # Documentation on available options: https://github.com/TexasInstruments/edgeai-tidl-tools/blob/master/examples/osrt_python/README.md
     compilation_options = {
         "platform": "J7",
@@ -56,14 +56,13 @@ if __name__ == "__main__":
         "artifacts_folder": artifacts_dir,
 
         "tensor_bits": 8,
-        
-        # YOLO-specific configuration. 
+
+        # YOLO-specific configuration.
         "model_type": "OD",
         'object_detection:meta_arch_type': 6,
-        # The below are copied from the linked sample code and are specific to TI's trained "small" model variant and 384px input dimension.
-        # See the note in the README for my thoughts on this parameter. You should _probably_ look in your .prototxt and replicate those numbers here.
-        # https://github.com/TexasInstruments/edgeai-benchmark/blob/16e57a65e7aa2802a6ac286be297ecc5cad93344/configs/detection.py#L184
-        # 'advanced_options:output_feature_16bit_names_list': '168, 370, 680, 990, 1300',
+        # yolox-s-ti-lite_39p1_57p9.onnx targets these layers.
+        # https://github.com/TexasInstruments/edgeai-benchmark/blob/15a934a88992d5507279ec2cde163dd9eefeaf1b/configs/detection.py#L232
+        'advanced_options:output_feature_16bit_names_list': '471, 709, 843, 977',
 
         # Note: if this parameter is omitted, the TIDL framework crashes due to buffer overflow rather than giving an error
         'object_detection:meta_layers_names_list': os.path.splitext(model_path)[0] + ".prototxt",
@@ -99,8 +98,8 @@ if __name__ == "__main__":
     assert input_type == 'tensor(float)'
 
     for image_path in calibration_images:
-        # YOLOv5 normalizes RGB 8-bit-depth [0, 255] into [0, 1]
-        input_data = np.asarray(Image.open(image_path).resize((width, height))).transpose((2, 0, 1)) / 255
+        # YOLO-X input is expected in the 0-255 range.
+        input_data = np.asarray(Image.open(image_path).resize((width, height))).transpose((2, 0, 1))
         input_data = input_data.astype(np.float32)
         input_data = np.expand_dims(input_data, 0)
 

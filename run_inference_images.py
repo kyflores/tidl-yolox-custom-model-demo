@@ -88,10 +88,10 @@ if __name__ == "__main__":
     test_image_paths = [ os.path.join(test_images_dir, name) for name in os.listdir(test_images_dir) ]
     test_image_data = []
     for image_path in test_image_paths:
-        # YOLOv5 normalizes RGB 8-bit-depth [0, 255] into [0, 1]
+        # YOLO-X expects data in the 0-255 input range
         # Model trained with RGB channel order but OpenCV loads in BGR order, so reverse channels.
         frame = cv2.imread(image_path)
-        input_data = cv2.resize(frame, (width, height)).transpose((2, 0, 1))[::-1, :, :] / 255
+        input_data = cv2.resize(frame, (width, height)).transpose((2, 0, 1))[::-1, :, :]
 
         input_data = input_data.astype(np.float32)
         input_data = np.expand_dims(input_data, 0)
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     # Effective inference latency computation: the amount of time it takes, as observed from user code.
     # Note that the configuration I've tested offloads the non-maximum suppression (NMS) and YOLO output extraction to the TIDL runtime.
     # This means that execution will take longer when more objects are in view. Use representative images for timing purposes.
-    NUM_TIMING_REPS = 200
+    NUM_TIMING_REPS = 10
     start = time.time()
     for it in range(NUM_TIMING_REPS):
         for i, input_data in enumerate(test_image_data):
